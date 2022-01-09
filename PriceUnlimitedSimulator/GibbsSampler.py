@@ -35,7 +35,7 @@ class GibbsSampler(object):
         self.kospiIndex = DataReader("KS11", self.startDate, self.endDate)["Change"] - self.riskFreeRate
         self.kosdaqIndex = DataReader("KQ11", self.startDate, self.endDate)["Change"] - self.riskFreeRate
 
-        self.calhartFactors = pd.read_csv("./Files/calhart.csv", index_col="Date")
+        self.calhartFactors = pd.read_csv("./Files/carhart.csv", index_col="Date")
         self.calhartFactors.index = pd.to_datetime(self.calhartFactors.index)
 
         self.kospiStockPriceData = {issueCode: self.__call_price_data(issueCode) for issueCode in self.kospiTickers}
