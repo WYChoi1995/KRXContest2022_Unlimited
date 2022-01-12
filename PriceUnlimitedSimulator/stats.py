@@ -9,11 +9,11 @@ def do_vol_test(data, ticker, pValue):
     ksTestResult = kstest(idiosyncVol, "norm")
 
     if ksTestResult[1] >= pValue:
-        ttestResult = ttest_1samp(a=idiosyncVol, popmean=volLimited, nan_policy="omit", alternative="two-sided")
+        ttestResult = ttest_1samp(a=idiosyncVol, popmean=volLimited, nan_policy="omit", alternative="greater")
 
-        return {"Statistic": ttestResult[0], "PValue": ttestResult[1]}
+        return {"Normal": True, "Statistic": ttestResult[0], "PValue": ttestResult[1]}
 
     else:
-        wilcoxonResult = wilcoxon(idiosyncVol - volLimited, zero_method="zsplit", alternative="two-sided")
+        wilcoxonResult = wilcoxon(idiosyncVol - volLimited, zero_method="pratt", alternative="greater")
 
-        return {"Statistic": wilcoxonResult[0], "PValue": wilcoxonResult[1]}
+        return {"Normal": False, "Statistic": wilcoxonResult[0], "PValue": wilcoxonResult[1]}
