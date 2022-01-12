@@ -11,7 +11,7 @@ from statsmodels.regression.linear_model import OLS
 
 
 class GibbsSampler(object):
-    def __init__(self, trialNumInput: int = 5000, collectNumInput: int = 1000, startDate: str = "2015-06-15", endDate: str = "2021-12-30"):
+    def __init__(self, trialNumInput: int = 5000, collectNumInput: int = 1000, startDate: str = "2015-06-12", endDate: str = "2021-12-30"):
         self.startDate = startDate
         self.endDate = endDate
         self.trialNumInput = trialNumInput
@@ -51,10 +51,14 @@ class GibbsSampler(object):
         priceData = DataReader(ticker, self.startDate, self.endDate)
         priceData["RiskPremium"] = priceData["Change"] - self.riskFreeRate
 
-        rawUpperLimit = priceData["Close"].shift(1) * 1.3
-        rawLowerLimit = priceData["Close"].shift(1) * 0.7
-
         if ticker in self.kospiTickers:
+            rawLimitPrice = priceData["Close"].shift(1) * 0.3
+            tickSize = pd.to_numeric(pd.cut(priceData["Close"].shift(1) * 0.3, self.kospiPriceRange, labels=self.kospiPriceLabel))
+            limitPrice = (rawLimitPrice // tickSize) * tickSize
+
+            rawUpperLimit = priceData["Close"].shift(1) + limitPrice
+            rawLowerLimit = priceData["Close"].shift(1) - limitPrice
+
             adjustedTickUpper = pd.to_numeric(pd.cut(rawUpperLimit, self.kospiPriceRange, labels=self.kospiPriceLabel))
             adjustedTickLower = pd.to_numeric(pd.cut(rawLowerLimit, self.kospiPriceRange, labels=self.kospiPriceLabel))
 
@@ -73,6 +77,13 @@ class GibbsSampler(object):
             initialSigma = marketModel.mse_resid ** 0.5
 
         else:
+            rawLimitPrice = priceData["Close"].shift(1) * 0.3
+            tickSize = pd.to_numeric(pd.cut(priceData["Close"].shift(1) * 0.3, self.kosdaqPriceRange, labels=self.kosdaqPriceLabel))
+            limitPrice = (rawLimitPrice // tickSize) * tickSize
+
+            rawUpperLimit = priceData["Close"].shift(1) + limitPrice
+            rawLowerLimit = priceData["Close"].shift(1) - limitPrice
+
             adjustedTickUpper = pd.to_numeric(pd.cut(rawUpperLimit, self.kosdaqPriceRange, labels=self.kosdaqPriceLabel))
             adjustedTickLower = pd.to_numeric(pd.cut(rawLowerLimit, self.kosdaqPriceRange, labels=self.kosdaqPriceLabel))
 
@@ -90,11 +101,11 @@ class GibbsSampler(object):
             initialBetaMMT = marketModel.params["MMT"]
             initialSigma = marketModel.mse_resid ** 0.5
 
-        priceData["UpperLimit"] = (rawUpperLimit / adjustedTickUpper).apply(np.floor) * adjustedTickUpper
-        priceData["LowerLimit"] = (rawLowerLimit / adjustedTickLower).apply(np.ceil) * adjustedTickLower
+        priceData["UpperLimit"] = (rawUpperLimit // adjustedTickUpper) * adjustedTickUpper
+        priceData["LowerLimit"] = (rawLowerLimit // adjustedTickLower) * adjustedTickLower
 
-        priceData["isUpper"] = (priceData["UpperLimit"] == priceData["Close"])
-        priceData["isLower"] = (priceData["LowerLimit"] == priceData["Close"])
+        priceData["isUpper"] = (priceData["UpperLimit"] <= priceData["Close"])
+        priceData["isLower"] = (priceData["LowerLimit"] >= priceData["Close"])
 
         return {"Data": priceData, "InitialBetaMR": initialBetaMR, "InitialBetaHML": initialBetaHML, "InitialBetaSMB": initialBetaSMB,
                 "InitialBetaMMT": initialBetaMMT, "InitialResidSigma": initialSigma}
@@ -119,7 +130,9 @@ class GibbsSampler(object):
         if isUpperOrLower != 0:
             while trialNum <= trialNumInput:
                 trialNum += 1
-                priceData["GeneratedReturn"] = np.random.normal(betaMR * priceData["Change"] + betaHML * priceData["HML"] + betaSMB * priceData["SMB"] + betaMMT * priceData["MMT"], residSigma)
+
+                priceData["GeneratedReturn"] = np.random.normal(initialBetaMR * priceData["Change"] + initialBetaHML * priceData["HML"] +
+                                                                initialBetaSMB * priceData["SMB"] + initialBetaMMT * priceData["MMT"], initialSigma)
                 priceData["UnlimitedReturn"] = priceData.apply(lambda dataRow: self.__get_real_return(dataRow), axis=1)
                 priceData["UnlimitedMp"] = priceData["UnlimitedReturn"] - self.riskFreeRate
 
