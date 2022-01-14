@@ -68,7 +68,7 @@ def plot_single_stock_idiosyncratic_vol_distribution(data, ticker):
 
     sns.set(style="whitegrid")
     plt.figure(figsize=(10, 6))
-    plt.title("{} Return".format(ticker))
+    plt.title("{} Vol distribution".format(ticker))
     plt.axvline(volLimited, 0, 1, linewidth=0.7, color="black")
     sns.distplot(idiosyncVol)
     plt.xlabel("Idiosyncratic Volatility (%)")
