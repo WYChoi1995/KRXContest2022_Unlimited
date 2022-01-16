@@ -2,7 +2,7 @@ import numpy as np
 from scipy.stats import wilcoxon, kstest, ttest_1samp
 
 
-def do_vol_test(data, ticker, pValue):
+def do_single_stock_vol_test(data, ticker, pValue):
     idiosyncVol = np.array([params[-1] for params in data[ticker]["SimulatedParams"]])
     volLimited = data[ticker]["InitialParams"][-1]
 
